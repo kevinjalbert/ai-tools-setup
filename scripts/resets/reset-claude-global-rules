@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+echo "Removing Claude global rules..."
+
+CLAUDE_RULES="$HOME/.claude/CLAUDE.md"
+if [ -f "$CLAUDE_RULES" ]; then
+    rm "$CLAUDE_RULES" 2>/dev/null || true
+    echo "Removed Claude global rules file from $CLAUDE_RULES"
+fi

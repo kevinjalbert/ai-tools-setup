@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+echo "Removing Cursor project rules..."
+
+CURSOR_RULES="$PWD/.cursor/rules/local"
+if [ -d "$CURSOR_RULES" ]; then
+    find "$CURSOR_RULES" -type l -print -delete
+    rmdir "$CURSOR_RULES" 2>/dev/null || true
+
+    # Clean up rules directory if empty
+    CURSOR_RULES="$PWD/.cursor/rules"
+    if [ -d "$CURSOR_RULES" ] && [ -z "$(ls -A $CURSOR_RULES 2>/dev/null)" ]; then
+        rmdir "$CURSOR_RULES" 2>/dev/null || true
+    fi
+
+    # Clean up .cursor directory if empty
+    CURSOR_DIR="$PWD/.cursor"
+    if [ -d "$CURSOR_DIR" ] && [ -z "$(ls -A $CURSOR_DIR 2>/dev/null)" ]; then
+        rmdir "$CURSOR_DIR" 2>/dev/null || true
+    fi
+
+    echo "Removed Cursor project rules from $CURSOR_RULES"
+fi

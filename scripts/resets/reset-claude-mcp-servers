@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+echo "Removing Claude MCP server configurations..."
+
+CLAUDE_JSON="$HOME/.claude.json"
+if [ -f "$CLAUDE_JSON" ]; then
+    jq 'del(.mcpServers)' "$CLAUDE_JSON" > "$CLAUDE_JSON.tmp" && mv "$CLAUDE_JSON.tmp" "$CLAUDE_JSON"
+    echo "Removed mcpServers configuration from $CLAUDE_JSON"
+
+    # Remove the entire file if it's empty (no keys left)
+    if [ "$(jq 'length' "$CLAUDE_JSON")" = "0" ] || [ "$(jq 'keys | length' "$CLAUDE_JSON")" = "0" ]; then
+        rm "$CLAUDE_JSON"
+        echo "Removed empty Claude configuration file"
+    fi
+fi

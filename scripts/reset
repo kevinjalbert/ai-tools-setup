@@ -1,0 +1,166 @@
+#!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Function to check for dependencies
+check_dependency() {
+  local cmd=$1
+  local install_msg=$2
+
+  if ! command -v "$cmd" &> /dev/null; then
+    echo "Error: '$cmd' is not installed."
+    echo "$install_msg"
+    exit 1
+  fi
+}
+
+check_dependency "gum" "To install gum: https://github.com/charmbracelet/gum"
+
+# Function to print usage information
+print_usage() {
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "Description:"
+  echo "  This script resets AI settings for AI tools in your environment."
+  echo "  It can reset global settings (rules, commands, MCP servers) and project-specific"
+  echo "  configurations. Use options below to specify which components to reset."
+  echo ""
+  echo "Options:"
+  echo "  --claude-global-rules       Reset Claude global rules"
+  echo "  --claude-global-commands    Reset Claude global commands"
+  echo "  --claude-global-mcp-servers Reset Claude MCP servers"
+  echo "  --cursor-global-mcp-servers Reset Cursor MCP servers"
+  echo "  --cursor-project-rules      Reset Cursor project rules"
+  echo "  --all                       Reset everything"
+  echo "  --help                      Display this help message"
+  echo ""
+  echo "With no options, all global resets will be performed."
+}
+
+# Get the absolute path to the directory containing this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Initialize flags
+RESET_CLAUDE_RULES=false
+RESET_CLAUDE_COMMANDS=false
+RESET_CLAUDE_MCP=false
+RESET_CURSOR_MCP=false
+RESET_CURSOR_RULES=false
+RESET_ALL=false
+NO_FLAGS=true
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --claude-global-rules)
+      RESET_CLAUDE_RULES=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --claude-global-commands)
+      RESET_CLAUDE_COMMANDS=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --claude-global-mcp-servers)
+      RESET_CLAUDE_MCP=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --cursor-global-mcp-servers)
+      RESET_CURSOR_MCP=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --cursor-project-rules)
+      RESET_CURSOR_RULES=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --all)
+      RESET_ALL=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --help)
+      print_usage
+      exit 0
+      ;;
+    *)
+      echo "Error: Unknown option: $1"
+      print_usage
+      exit 1
+      ;;
+  esac
+done
+
+# If no flags were provided, reset all global components
+if [ "$NO_FLAGS" = true ]; then
+  RESET_CLAUDE_RULES=true
+  RESET_CLAUDE_COMMANDS=true
+  RESET_CLAUDE_MCP=true
+  RESET_CURSOR_MCP=true
+fi
+
+# If --all flag was provided, reset everything
+if [ "$RESET_ALL" = true ]; then
+  RESET_CLAUDE_RULES=true
+  RESET_CLAUDE_COMMANDS=true
+  RESET_CLAUDE_MCP=true
+  RESET_CURSOR_MCP=true
+  RESET_CURSOR_RULES=true
+fi
+
+# Simple header
+gum style --bold "Resetting configurations for AI tools..."
+echo ""
+
+run_step() {
+  local title="$1"
+  local cmd="$2"
+
+  echo -n "$(gum style --foreground 33 "•") $title... "
+
+  # Execute the command in a subshell to capture all output properly
+  # The set -o pipefail ensures that if a command in the pipeline fails, the whole command fails
+  set -o pipefail
+  output=$(set -o pipefail; { bash -c "$cmd" || echo "EXIT_STATUS=$?"; } 2>&1)
+
+  # Handle based on the exit status
+  if echo "$output" | grep -q "EXIT_STATUS="; then
+    status=$(echo "$output" | grep "EXIT_STATUS=" | sed 's/.*EXIT_STATUS=//')
+    output=$(echo "$output" | grep -v "EXIT_STATUS=")
+
+    echo "$(gum style --foreground 196 "✗")"
+    echo "$output" | gum style --border double --border-foreground 196 --padding "1 2" --width 80
+    exit $status
+  else
+    echo "$(gum style --foreground 76 "✓")"
+  fi
+  set +o pipefail
+}
+
+# Run reset steps based on flags
+if [ "$RESET_CLAUDE_MCP" = true ]; then
+  run_step "Resetting Claude MCP servers" "bash $SCRIPT_DIR/resets/reset-claude-mcp-servers"
+fi
+
+if [ "$RESET_CURSOR_MCP" = true ]; then
+  run_step "Resetting Cursor MCP servers" "bash $SCRIPT_DIR/resets/reset-cursor-mcp-servers"
+fi
+
+if [ "$RESET_CURSOR_RULES" = true ]; then
+  run_step "Resetting Cursor project rules" "bash $SCRIPT_DIR/resets/reset-cursor-project-rules"
+fi
+
+if [ "$RESET_CLAUDE_RULES" = true ]; then
+  run_step "Resetting Claude global rules" "bash $SCRIPT_DIR/resets/reset-claude-global-rules"
+fi
+
+if [ "$RESET_CLAUDE_COMMANDS" = true ]; then
+  run_step "Resetting Claude global commands" "bash $SCRIPT_DIR/resets/reset-claude-global-commands"
+fi
+
+echo ""
+gum style --bold "Reset complete!"

@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+echo "Removing Claude global commands..."
+
+CLAUDE_COMMANDS="$HOME/.claude/commands"
+
+if [ -d "$CLAUDE_COMMANDS" ]; then
+    # Remove all markdown files in the commands directory
+    rm "$CLAUDE_COMMANDS"/*.md 2>/dev/null || true
+
+    # Try to remove the directory if it's empty
+    rmdir "$CLAUDE_COMMANDS" 2>/dev/null || true
+
+    echo "Removed Claude global commands from $CLAUDE_COMMANDS"
+fi

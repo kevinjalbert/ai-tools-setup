@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+echo "Removing Cursor MCP server configurations..."
+
+CURSOR_MCP_CONFIG="$HOME/.cursor/mcp.json"
+if [ -f "$CURSOR_MCP_CONFIG" ]; then
+    rm "$CURSOR_MCP_CONFIG" 2>/dev/null || true
+    echo "Removed Cursor MCP configuration from $CURSOR_MCP_CONFIG"
+fi

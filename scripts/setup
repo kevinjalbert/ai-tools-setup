@@ -1,0 +1,180 @@
+#!/bin/bash
+set -e
+
+check_dependency() {
+  local cmd=$1
+  local install_msg=$2
+
+  if ! command -v "$cmd" &> /dev/null; then
+    echo "Error: '$cmd' is not installed."
+    echo "$install_msg"
+    exit 1
+  fi
+}
+
+check_dependency "gum" "To install gum: https://github.com/charmbracelet/gum"
+check_dependency "jq" "To install jq: https://stedolan.github.io/jq/download/"
+
+print_usage() {
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "Description:"
+  echo "  This script configures AI settings for AI tools in your environment."
+  echo "  It can set up global settings (rules, commands, MCP servers) and project-specific"
+  echo "  configurations. Use options below to specify which components to set up."
+  echo ""
+  echo "Options:"
+  echo "  --claude-global-rules       Setup Claude global rules"
+  echo "  --claude-global-commands    Setup Claude global commands"
+  echo "  --claude-global-mcp-servers Setup Claude MCP servers"
+  echo "  --cursor-global-mcp-servers Setup Cursor MCP servers"
+  echo "  --cursor-project-rules      Setup Cursor project rules"
+  echo "  --all                       Setup everything"
+  echo "  --help                      Display this help message"
+  echo ""
+  echo "With no options, all global setups will be performed."
+}
+
+# Get the absolute path to the directory containing this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_DIR="${AI_CONFIGS_DIR:-$HOME/ai_configs}"
+
+# Initialize flags
+SETUP_CLAUDE_RULES=false
+SETUP_CLAUDE_COMMANDS=false
+SETUP_CLAUDE_MCP=false
+SETUP_CURSOR_MCP=false
+SETUP_CURSOR_RULES=false
+SETUP_ALL=false
+NO_FLAGS=true
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --claude-global-rules)
+      SETUP_CLAUDE_RULES=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --claude-global-commands)
+      SETUP_CLAUDE_COMMANDS=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --claude-global-mcp-servers)
+      SETUP_CLAUDE_MCP=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --cursor-global-mcp-servers)
+      SETUP_CURSOR_MCP=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --cursor-project-rules)
+      SETUP_CURSOR_RULES=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --all)
+      SETUP_ALL=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --help)
+      print_usage
+      exit 0
+      ;;
+    *)
+      echo "Error: Unknown option: $1"
+      print_usage
+      exit 1
+      ;;
+  esac
+done
+
+# If no flags were provided, set up all global components
+if [ "$NO_FLAGS" = true ]; then
+  SETUP_CLAUDE_RULES=true
+  SETUP_CLAUDE_COMMANDS=true
+  SETUP_CLAUDE_MCP=true
+  SETUP_CURSOR_MCP=true
+fi
+
+# If --all flag was provided, set up everything
+if [ "$SETUP_ALL" = true ]; then
+  SETUP_CLAUDE_RULES=true
+  SETUP_CLAUDE_COMMANDS=true
+  SETUP_CLAUDE_MCP=true
+  SETUP_CURSOR_MCP=true
+  SETUP_CURSOR_RULES=true
+fi
+
+# Simple header
+gum style --bold "Setting integrations for AI tools..."
+echo ""
+
+# Check if required subdirectories exist
+for dir in "rules" "commands"; do
+  if [ ! -d "$CONFIG_DIR/$dir" ]; then
+    echo "Error: Required directory $CONFIG_DIR/$dir does not exist."
+    echo "Please create it manually before proceeding. There should be .mdc files in here."
+    exit 1
+  fi
+done
+
+# Check for MCP server configuration
+if [ ! -f "$CONFIG_DIR/mcp-servers-config.json" ]; then
+  echo "Error: MCP server configuration file not found at $CONFIG_DIR/mcp-servers-config.json"
+  echo "Please create this file before proceeding."
+  echo "Look at the README.md for more information and an example of this file."
+  exit 1
+fi
+
+run_step() {
+  local title="$1"
+  local cmd="$2"
+
+  echo -n "$(gum style --foreground 33 "•") $title... "
+
+  # Execute the command in a subshell to capture all output properly
+  # The set -o pipefail ensures that if a command in the pipeline fails, the whole command fails
+  set -o pipefail
+  output=$(set -o pipefail; { bash -c "$cmd" || echo "EXIT_STATUS=$?"; } 2>&1)
+
+  # Handle based on the exit status
+  if echo "$output" | grep -q "EXIT_STATUS="; then
+    status=$(echo "$output" | grep "EXIT_STATUS=" | sed 's/.*EXIT_STATUS=//')
+    output=$(echo "$output" | grep -v "EXIT_STATUS=")
+
+    echo "$(gum style --foreground 196 "✗")"
+    echo "$output" | gum style --border double --border-foreground 196 --padding "1 2" --width 80
+    exit $status
+  else
+    echo "$(gum style --foreground 76 "✓")"
+  fi
+  set +o pipefail
+}
+
+if [ "$SETUP_CLAUDE_MCP" = true ]; then
+  run_step "Setting up Claude MCP servers" "bash $SCRIPT_DIR/setups/setup-claude-mcp-servers"
+fi
+
+if [ "$SETUP_CURSOR_MCP" = true ]; then
+  run_step "Setting up Cursor MCP servers" "bash $SCRIPT_DIR/setups/setup-cursor-mcp-servers"
+fi
+
+if [ "$SETUP_CURSOR_RULES" = true ]; then
+  run_step "Setting up Cursor project rules" "bash $SCRIPT_DIR/setups/setup-cursor-project-rules"
+fi
+
+if [ "$SETUP_CLAUDE_RULES" = true ]; then
+  run_step "Setting up Claude global rules" "bash $SCRIPT_DIR/setups/setup-claude-global-rules"
+fi
+
+if [ "$SETUP_CLAUDE_COMMANDS" = true ]; then
+  run_step "Setting up Claude global commands" "bash $SCRIPT_DIR/setups/setup-claude-global-commands"
+fi
+
+echo ""
+gum style --bold "Setup complete!"

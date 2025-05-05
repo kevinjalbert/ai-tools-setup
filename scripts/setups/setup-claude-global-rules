@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+CONFIG_DIR="${AI_CONFIGS_DIR:-$HOME/ai_configs}"
+RULES_DIR="$CONFIG_DIR/rules"
+TARGET_FILE="$HOME/.claude/CLAUDE.md"
+
+echo "Setting up global Claude Code rules..."
+
+echo "Concatenating rules from rules directory and appending to $TARGET_FILE..."
+mkdir -p "$(dirname "$TARGET_FILE")"
+rm -f "$TARGET_FILE" 2>/dev/null || true
+touch "$TARGET_FILE"
+
+find "$RULES_DIR" -name "*.mdc" -type f | sort | while read rule_file; do
+  # Add a separator before each rule
+  echo -e "<!-- RULE FILE: $(basename "$rule_file") -->" >> "$TARGET_FILE"
+
+  # Add the rule content
+  cat "$rule_file" >> ~/.claude/CLAUDE.md
+  echo -e "\n" >> ~/.claude/CLAUDE.md
+done
+
+echo "Added rules to ~/.claude/CLAUDE.md"

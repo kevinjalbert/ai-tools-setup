@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+CONFIG_DIR="${AI_CONFIGS_DIR:-$HOME/ai_configs}"
+COMMANDS_DIR="$CONFIG_DIR/commands"
+TARGET_DIR="$HOME/.claude/commands"
+
+echo "Setting up global Claude Code commands..."
+
+if [ ! -d "$COMMANDS_DIR" ]; then
+  echo "Error: Commands directory not found at $COMMANDS_DIR"
+  exit 1
+fi
+
+# Start with a clean slate
+mkdir -p "$TARGET_DIR"
+rm -f "$TARGET_DIR/*"
+
+echo "Creating hard copies in $TARGET_DIR with .md extension from commands directory..."
+find "$COMMANDS_DIR" -name "*.mdc" -type f | while read file; do
+  # Get the relative path from commands directory
+  rel_path=${file#"$COMMANDS_DIR/"}
+
+  # Create destination directory if needed
+  dest_dir="$TARGET_DIR/$(dirname "$rel_path")"
+  mkdir -p "$dest_dir" 2>/dev/null
+
+  # Create hard copy with .md extension instead of .mdc
+  filename=$(basename "$file")
+  newname="${filename%.mdc}.md"
+  dest_file="$dest_dir/$newname"
+  cp "$file" "$dest_file" || echo "Failed to copy from $file to $dest_file"
+done
+
+echo "Claude global commands setup complete!"
