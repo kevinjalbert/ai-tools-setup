@@ -27,6 +27,8 @@ print_usage() {
   echo "  configurations. Use options below to specify which components to reset."
   echo ""
   echo "Options:"
+  echo "  --copilot-global-rules      Reset Copilot global rules"
+  echo "  --copilot-global-commands   Reset Copilot global commands"
   echo "  --claude-global-rules       Reset Claude global rules"
   echo "  --claude-global-commands    Reset Claude global commands"
   echo "  --claude-global-mcp-servers Reset Claude MCP servers"
@@ -42,6 +44,8 @@ print_usage() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Initialize flags
+RESET_COPILOT_RULES=false
+RESET_COPILOT_COMMANDS=false
 RESET_CLAUDE_RULES=false
 RESET_CLAUDE_COMMANDS=false
 RESET_CLAUDE_MCP=false
@@ -53,6 +57,16 @@ NO_FLAGS=true
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --copilot-global-rules)
+      RESET_COPILOT_RULES=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --copilot-global-commands)
+      RESET_COPILOT_COMMANDS=true
+      NO_FLAGS=false
+      shift
+      ;;
     --claude-global-rules)
       RESET_CLAUDE_RULES=true
       NO_FLAGS=false
@@ -97,6 +111,8 @@ done
 
 # If no flags were provided, reset all global components
 if [ "$NO_FLAGS" = true ]; then
+  RESET_COPILOT_RULES=true
+  RESET_COPILOT_COMMANDS=true
   RESET_CLAUDE_RULES=true
   RESET_CLAUDE_COMMANDS=true
   RESET_CLAUDE_MCP=true
@@ -105,6 +121,8 @@ fi
 
 # If --all flag was provided, reset everything
 if [ "$RESET_ALL" = true ]; then
+  RESET_COPILOT_RULES=true
+  RESET_COPILOT_COMMANDS=true
   RESET_CLAUDE_RULES=true
   RESET_CLAUDE_COMMANDS=true
   RESET_CLAUDE_MCP=true
@@ -160,6 +178,14 @@ fi
 
 if [ "$RESET_CLAUDE_COMMANDS" = true ]; then
   run_step "Resetting Claude global commands" "bash $SCRIPT_DIR/resets/reset-claude-global-commands"
+fi
+
+if [ "$RESET_COPILOT_RULES" = true ]; then
+  run_step "Resetting Copilot global rules" "bash $SCRIPT_DIR/resets/reset-copilot-global-rules"
+fi
+
+if [ "$RESET_COPILOT_COMMANDS" = true ]; then
+  run_step "Resetting Copilot global commands" "bash $SCRIPT_DIR/resets/reset-copilot-global-commands"
 fi
 
 echo ""

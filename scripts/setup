@@ -24,6 +24,8 @@ print_usage() {
   echo "  configurations. Use options below to specify which components to set up."
   echo ""
   echo "Options:"
+  echo "  --copilot-global-rules      Setup Copilot global rules"
+  echo "  --copilot-global-commands   Setup Copilot global commands"
   echo "  --claude-global-rules       Setup Claude global rules"
   echo "  --claude-global-commands    Setup Claude global commands"
   echo "  --claude-global-mcp-servers Setup Claude MCP servers"
@@ -40,6 +42,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="${AI_CONFIGS_DIR:-$HOME/ai_configs}"
 
 # Initialize flags
+SETUP_COPILOT_RULES=false
+SETUP_COPILOT_COMMANDS=false
 SETUP_CLAUDE_RULES=false
 SETUP_CLAUDE_COMMANDS=false
 SETUP_CLAUDE_MCP=false
@@ -51,6 +55,16 @@ NO_FLAGS=true
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --copilot-global-rules)
+      SETUP_COPILOT_RULES=true
+      NO_FLAGS=false
+      shift
+      ;;
+    --copilot-global-commands)
+      SETUP_COPILOT_COMMANDS=true
+      NO_FLAGS=false
+      shift
+      ;;
     --claude-global-rules)
       SETUP_CLAUDE_RULES=true
       NO_FLAGS=false
@@ -95,6 +109,8 @@ done
 
 # If no flags were provided, set up all global components
 if [ "$NO_FLAGS" = true ]; then
+  SETUP_COPILOT_RULES=true
+  SETUP_COPILOT_COMMANDS=true
   SETUP_CLAUDE_RULES=true
   SETUP_CLAUDE_COMMANDS=true
   SETUP_CLAUDE_MCP=true
@@ -103,6 +119,8 @@ fi
 
 # If --all flag was provided, set up everything
 if [ "$SETUP_ALL" = true ]; then
+  SETUP_COPILOT_RULES=true
+  SETUP_COPILOT_COMMANDS=true
   SETUP_CLAUDE_RULES=true
   SETUP_CLAUDE_COMMANDS=true
   SETUP_CLAUDE_MCP=true
@@ -174,6 +192,14 @@ fi
 
 if [ "$SETUP_CLAUDE_COMMANDS" = true ]; then
   run_step "Setting up Claude global commands" "bash $SCRIPT_DIR/setups/setup-claude-global-commands"
+fi
+
+if [ "$SETUP_COPILOT_RULES" = true ]; then
+  run_step "Setting up Copilot global rules" "bash $SCRIPT_DIR/setups/setup-copilot-global-rules"
+fi
+
+if [ "$SETUP_COPILOT_COMMANDS" = true ]; then
+  run_step "Setting up Copilot global commands" "bash $SCRIPT_DIR/setups/setup-copilot-global-commands"
 fi
 
 echo ""

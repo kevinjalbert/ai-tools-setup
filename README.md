@@ -14,10 +14,11 @@ You have a single configuration directory that contains your rules, commands, an
 
 ## Supported AI Tools 🛠️
 
-| AI Tool                                                  | Configurations                     | MCP Servers | Project Scope | Global Scope |
-|----------------------------------------------------------|-----------------------------------|------------|----------------|--------------|
-| [Claude Code](https://github.com/anthropics/claude-code) | [Link](#claude-code-configuration) | ✅          | ❌            | ✅            |
-| [Cursor](https://www.cursor.com)                         | [Link](#cursor-configuration)      | ✅          | ✅ (symlinks) | ❌            |
+| AI Tool | Configurations | MCP Servers | Project Scope | Global Scope |
+|:--------|:-------------:|:-----------:|:-------------:|:------------:|
+| [Copilot](https://code.visualstudio.com/docs/copilot/overview) | [Details](#copilot-configuration) | 🚧 (cursor's) | ❌ | ✅ |
+| [Claude Code](https://github.com/anthropics/claude-code) | [Details](#claude-code-configuration) | ✅ | ❌ | ✅ |
+| [Cursor](https://www.cursor.com) | [Details](#cursor-configuration) | ✅ | ✅ (symlinks) | ❌ |
 
 ## How to Use
 
@@ -71,6 +72,20 @@ Even though some AI tools might not use `.mdc` files, we just keep the content (
 ```
 
 ## AI Tool Specifics
+
+### Copilot Configuration
+
+- **Global Rules**: Rules are set in VSCode's settings (`~/Library/Application Support/Code/User/settings.json`) under the `github.copilot.chat.codeGeneration.instructions` key.
+  - As the user's `settings.json` is JSON5, there isn't a reliable way to modify a value (for example using `jq`). So a _marker_ system was used to be able to replace everything between the two marker keys:
+
+    ```json
+    "__AI_TOOL_COPILOT_START": true,
+    "github.copilot.chat.codeGeneration.instructions": [{"text":"rule1 content"},{"text":"rule2 content"},],
+    "__AI_TOOL_COPILOT_END": true,
+    ```
+
+- **Global Commands**: Commands (.mdc files) are copied to `~/Library/Application Support/Code/User/prompts` with `prompt.md` extension
+- **MCP Servers**: Server configurations are not configured right now, but [VSCode can leverage Cursor's MCP configuration](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_automatic-discovery-of-mcp-servers)
 
 ### Claude Code Configuration
 

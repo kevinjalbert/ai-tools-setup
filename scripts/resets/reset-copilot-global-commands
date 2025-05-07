@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+echo "Removing Copilot global commands..."
+
+COPILOT_COMMANDS="$HOME/Library/Application Support/Code/User/prompts"
+
+if [ -d "$COPILOT_COMMANDS" ]; then
+    # Remove all markdown files in the commands directory
+    rm "$COPILOT_COMMANDS"/*.md 2>/dev/null || true
+
+    # Try to remove the directory if it's empty
+    rmdir "$COPILOT_COMMANDS" 2>/dev/null || true
+
+    echo "Removed Copilot global commands from $COPILOT_COMMANDS"
+fi

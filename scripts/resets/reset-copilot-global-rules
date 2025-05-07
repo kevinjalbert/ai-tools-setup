@@ -1,0 +1,37 @@
+#!/bin/bash
+set -e
+
+# Function to remove github.copilot.chat.codeGeneration.instructions key from target file
+function remove_copilot_instruction() {
+    local target_file=$1
+    local content
+
+    content=$(cat "$target_file")
+
+    # Remove everything between the markers (inclusive)
+    content=$(echo "$content" | awk '
+    BEGIN { printing = 1; result = ""; }
+
+    /\"__AI_TOOL_COPILOT_START\": true,/ { printing = 0; next; }
+    /\"__AI_TOOL_COPILOT_END\": true,/ { printing = 1; next; }
+
+    { if (printing) result = result $0 "\n"; }
+
+    END {
+        # Remove trailing newline and comma if it exists
+        sub(/,\n$/, "\n", result);
+        sub(/\n$/, "", result);
+        print result;
+    }
+    ')
+
+    echo "$content" > "$target_file"
+}
+
+
+echo "Removing Copilot global rules..."
+
+TARGET_FILE="$HOME/Library/Application Support/Code/User/settings.json"
+remove_copilot_instruction "$TARGET_FILE"
+
+echo "Removed Copilot global rules from $TARGET_FILE"

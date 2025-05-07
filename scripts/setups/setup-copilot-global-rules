@@ -1,0 +1,100 @@
+#!/bin/bash
+set -e
+
+CONFIG_DIR="${AI_CONFIGS_DIR:-$HOME/ai_configs}"
+TARGET_FILE="$HOME/Library/Application Support/Code/User/settings.json"
+
+# Function to remove github.copilot.chat.codeGeneration.instructions key from target file
+function remove_copilot_instruction() {
+    local target_file=$1
+    local content
+
+    content=$(cat "$target_file")
+
+    # Remove everything between the markers (inclusive)
+    content=$(echo "$content" | awk '
+    BEGIN { printing = 1; result = ""; }
+
+    /\"__AI_TOOL_COPILOT_START\": true,/ { printing = 0; next; }
+    /\"__AI_TOOL_COPILOT_END\": true,/ { printing = 1; next; }
+
+    { if (printing) result = result $0 "\n"; }
+
+    END {
+        # Remove trailing newline and comma if it exists
+        sub(/,\n$/, "\n", result);
+        sub(/\n$/, "", result);
+        print result;
+    }
+    ')
+
+    echo "$content" > "$target_file"
+}
+
+# Function to generate the representation of Copilot instructions array value
+function generate_copilot_instruction() {
+    local rules_dir=$1
+    local rules_json="["
+    local first_rule=true
+
+    for rule_file in "$rules_dir"/*.mdc; do
+        if [ -f "$rule_file" ]; then
+            # Escape quotes and newlines for JSON, and trim trailing space
+            rule_text=$(cat "$rule_file" | sed 's/"/\\"/g' | tr '\n' ' ' | sed 's/ $//')
+            rules_json+="{\"text\":\"$rule_text\"},"
+        fi
+    done
+
+    rules_json+="]"
+    echo "$rules_json"
+}
+
+# Function to add the Copilot instructions at the beginning of the JSON file
+function set_copilot_instruction() {
+    local target_file=$1
+    local rules_array=$2
+    local content
+
+    content=$(cat "$target_file")
+    temp_file=$(mktemp)
+
+    # Write the opening part with our content (without trailing newline)
+    echo -n "{
+    \"__AI_TOOL_COPILOT_START\": true,
+    \"github.copilot.chat.codeGeneration.instructions\": $rules_array,
+    \"__AI_TOOL_COPILOT_END\": true," > "$temp_file"
+
+    # Append the rest of the content, skipping the first opening brace
+    echo "$content" | tail -c +2 >> "$temp_file"
+
+    # Replace the original file
+    mv "$temp_file" "$target_file"
+}
+
+echo "Setting up Copilot chat code generation instructions..."
+
+echo "Adding rules from rules directory to user's $TARGET_FILE..."
+
+# Initialize the file if it doesn't exist or is empty
+if [[ ! -f "$TARGET_FILE" || ! -s "$TARGET_FILE" ]]; then
+    echo "{}" > "$TARGET_FILE"
+    echo "Initialized $TARGET_FILE with empty JSON object"
+fi
+
+# Create a backup of the settings file
+cp "$TARGET_FILE" "${TARGET_FILE}.bak" 2>/dev/null
+
+# First remove any existing instructions
+echo "Removing existing Copilot code generation instructions if any..."
+remove_copilot_instruction "$TARGET_FILE"
+
+# Generate new instructions JSON
+echo "Generating new Copilot code generation instructions from rules..."
+RULES_ARRAY=$(generate_copilot_instruction "$CONFIG_DIR/rules")
+
+# Set the new instructions at the beginning of the file
+echo "Setting new Copilot code generation instructions..."
+set_copilot_instruction "$TARGET_FILE" "$RULES_ARRAY"
+echo "Added code generation instructions to $TARGET_FILE"
+
+echo "Copilot global rules setup complete!"
