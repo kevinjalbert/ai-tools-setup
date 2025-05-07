@@ -14,7 +14,7 @@ fi
 
 # Start with a clean slate
 mkdir -p "$TARGET_DIR"
-rm -f "$TARGET_DIR/*"
+rm -f "$TARGET_DIR"/*.md
 
 echo "Creating hard copies in $TARGET_DIR with .md extension from commands directory..."
 find "$COMMANDS_DIR" -name "*.mdc" -type f | while read file; do
