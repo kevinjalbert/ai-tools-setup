@@ -10,7 +10,9 @@ The goal of this project is to:
 
 You have a single configuration directory that contains your rules, commands, and MCP server configuration. A single script will propagate your configuration to the correct locations for both AI tools.
 
-Currently, the script supports the following AI tools:
+⚠️ This has been built and tested on MacOS. Currently there is no support for Windows and Linux as these requires additional work.
+
+## Supported AI Tools 🛠️
 
 | AI Tool                                                  | Configurations                     | MCP Servers | Project Scope | Global Scope |
 |----------------------------------------------------------|-----------------------------------|------------|----------------|--------------|
@@ -60,13 +62,10 @@ Even though some AI tools might not use `.mdc` files, we just keep the content (
 
 ```json
 {
-  "example-custom-mcp": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["path/to/your/custom-mcp-server.js"],
-      "env": {
-        "DEBUG": "false"
-      }
+  "fetch": {
+    "type": "stdio",
+    "command": "uvx",
+    "args": ["mcp-server-fetch"]
   }
 }
 ```
