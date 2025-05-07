@@ -4,7 +4,6 @@ set -e
 echo "Setting up Cursor project rules and commands..."
 
 CONFIG_DIR="${AI_CONFIGS_DIR:-$HOME/ai_configs}"
-RULES_DIR="$CONFIG_DIR/rules"
 TARGET_DIR="$PWD/.cursor/rules/local"
 
 mkdir -p "$TARGET_DIR"
